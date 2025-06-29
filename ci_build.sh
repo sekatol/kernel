@@ -102,4 +102,6 @@ if [ -d ${HOME}/.dosemu/drive_c/tc201 ] ; then
   mv -n share/src/share.map _output/tc_dos/.
 fi
 
+tar cJf output.tar.xz _output/*
+
 echo done
