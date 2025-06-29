@@ -119,7 +119,7 @@ set XFAT=32
 :- such as -DDEBUG : extra DEBUG output
 :-         -DDOSEMU : printf output goes to dosemu log
 :- set ALLCFLAGS=-DDEBUG
-
+set ALLCFLAGS=-DWIN31SUPPORT
 
 :-
 :- $Id: config.b 864 2004-04-11 12:21:25Z bartoldeman $

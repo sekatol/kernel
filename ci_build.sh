@@ -16,8 +16,7 @@ mkdir _output/gcc
 git clean -x -d -f -e test -e _output -e _downloads -e _watcom
 make -C country clean
 make all COMPILER=gcc
-mv -n bin/KGC*.map bin/KGC*.sys _output/gcc/.
-mv -n bin/country.sys _output/gcc/.
+mv -n bin/* _output/gcc/.
 # GCC share
 (
   cd share
@@ -36,8 +35,7 @@ mkdir _output/wc
 git clean -x -d -f -e test -e _output -e _downloads -e _watcom
 make -C country clean
 make all COMPILER=owlinux
-mv -n bin/KWC*.map bin/KWC*.sys _output/wc/.
-mv -n bin/country.sys _output/wc/.
+mv -n bin/* _output/wc/.
 
 ## DOS (GCC)
 #mkdir _output/gcc_dos
@@ -68,11 +66,11 @@ git clean -x -d -f -e test -e _output -e _downloads -e _watcom
   echo set OLDPATH=%PATH%
   echo set PATH='%WATCOM%\\binw;C:\\bin;%OLDPATH%'
   echo set DOS4G=QUIET
+  echo set ALLCFLAGS=-DWIN31SUPPORT
 } | unix2dos > config.bat
 
-dosemu -td -q -K . -E "build.bat"
-mv -n bin/KWC*.map bin/KWC*.sys _output/wc_dos/.
-mv -n bin/country.sys _output/wc_dos/.
+dosemu -td -q -K . -E "build.bat win"
+mv -n bin/* _output/wc_dos/.
 
 
 # DOS (Turbo C 2.01)
@@ -88,11 +86,11 @@ if [ -d ${HOME}/.dosemu/drive_c/tc201 ] ; then
     echo set XNASM=nasm
     echo set OLDPATH=%PATH%
     echo set PATH='%TC2_BASE%;C:\\devel\\nasm;C:\\bin;%OLDPATH%'
+    echo set ALLCFLAGS=-DWIN31SUPPORT
   } | unix2dos > config.bat
 
-  dosemu -td -q -K . -E "build.bat lfn"
-  mv -n bin/KTC*.map bin/KTC*.sys _output/tc_dos/.
-  mv -n bin/country.sys _output/tc_dos/.
+  dosemu -td -q -K . -E "build.bat lfn win"
+  mv -n bin/* _output/tc_dos/.
   # TC share
   (
     cd share
