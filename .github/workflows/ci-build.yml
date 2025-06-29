@@ -40,9 +40,7 @@ jobs:
         )
 
     - name: upload
-      if: github.repository == 'FDOS/kernel' &&
-        (github.event_name == 'push' || github.event.pull_request.merged == true)
       uses: actions/upload-artifact@v4
       with:
         name: ${{ steps.snapshotname.outputs.fname }}
-        path: _output/*/*.???
+        path: output.tar.xz
