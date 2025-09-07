@@ -41,6 +41,8 @@ segment HMA_TEXT
                 extern   _user_r
                 extern   _ErrorMode
                 extern   _InDOS
+                extern   _term_type
+                extern   _abort_progress
 %IFDEF WIN31SUPPORT
                 extern   _winInstanced
 %ENDIF ; WIN31SUPPORT
@@ -264,11 +266,11 @@ reloc_call_int21_handler:
                 ; NB: At this point, SS != DS and won't be set that way
                 ; until later when which stack to run on is determined.
                 ;
-int21_reentry:
-                Protect386Registers
                 mov     dx,[cs:_DGROUP_]
                 mov     ds,dx
-
+		mov byte [_term_type], 0	; reset termination type
+int21_reentry:		; entered here from int 24h abort, ds = dx => DGROUP
+                Protect386Registers
                 cmp     ah,33h
                 je      int21_user
                 cmp     ah,50h
@@ -611,6 +613,8 @@ CritErr05:
                 mov     bp,sp
                 push    si
                 push    di
+                Protect386Registers
+
                 ;
                 ; Get parameters
                 ;
@@ -644,8 +648,8 @@ CritErr05:
                 ;
                 ; switch to user's stack
                 ;
-                mov     ss,[es:PSP_USERSS]
                 mov     bp,[es:PSP_USERSP]
+                mov     ss,[es:PSP_USERSS]
                 RestoreSP
                 Restore386Registers
                 mov     bp,cx        
@@ -659,6 +663,13 @@ CritErr05:
                 ;
                 cld
                 cli
+                Protect386Registers
+                ; ecm: The extended stack frame must be restored here
+                ;  in case the response isn't Abort. The int 21h handler
+                ;  will expect the extended stack frame to be still
+                ;  intact, but the stack written by the int 24h (even
+                ;  only the int instruction) will have overwritten it.
+
                 mov     bp, [cs:_DGROUP_]
                 mov     ds,bp
                 mov     ss,bp
@@ -672,7 +683,13 @@ CritErr05:
                 pop     word [es:PSP_USERSP]
                 pop     word [es:PSP_USERSS]
                 mov     bp, sp
-                mov     ah, byte [bp+4+4]       ; restore old AH from nFlags
+                mov     ah, byte [bp + 4 + 4 + Size386Registers]
+                ; restore old AH from nFlags
+                ; ecm: One 4 is the displacement of nFlags from the
+                ;  usual bp, the other 4 accounts for the si and di
+                ;  on the stack, the Size386Registers is added to
+                ;  skip the fs and gs (OpenWatcom 386 build) or high
+                ;  words that are a part of the stack frame, if any.
                 sti                             ; Enable interrupts
                 ;
                 ; clear flags
@@ -715,6 +732,8 @@ CritErr30:
 
 CritErrExit:
                 xor     ah,ah                   ; clear out top for return
+
+                Restore386Registers
                 pop     di
                 pop     si
                 pop     bp
@@ -724,18 +743,28 @@ CritErrExit:
                 ; Abort processing.
                 ;
 CritErrAbort:
+		test	byte [_abort_progress], -1
+		mov	al, FAIL
+		jnz	CritErrExit
+%if 0
                 mov     ax,[_cu_psp]
                 mov     es,ax
                 cmp     ax,[es:PSP_PARENT]
                 mov     al,FAIL
                 jz      CritErrExit
+                ; ecm: This check is done by (E)DR-DOS, but not MS-DOS.
+                ;  Therefore, disable it and terminate the self-parented
+                ;  process here like any other.
+%endif
                 cli
-                mov     bp,word [_user_r+2]   ;Get frame
-                mov     ss,bp
+                mov     ax,word [_user_r+2]   ;Get frame
                 mov     bp,word [_user_r]
+                mov     ss,ax
                 mov     sp,bp
                 mov     byte [_ErrorMode],1        ; flag abort
                 mov     ax,4C00h
                 mov     [bp+reg_ax],ax
                 sti
+                mov     byte [_term_type], 2       ; set int 24h abort error
+                mov     dx, ds
                 jmp     int21_reentry              ; restart the system call
